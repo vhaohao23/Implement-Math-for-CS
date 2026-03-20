@@ -70,23 +70,40 @@ def find_near_right_col(y,f):
     return int(ynear)
 
 def derivative_x(x,y,f):
-    x_left=find_row(find_near_left_row(x,f),f)
-    x_right=find_row(find_near_right_row(x,f),f)
-    ykey=find_col(y,f)
-    xkey=find_row(x,f)
+    ykey = find_col(y, f)
+    xkey = find_row(x, f)
 
-    df_left=(f[x_left][ykey]-f[xkey][ykey])/(f[x_left][0]-x)
-    df_right=(f[x_right][ykey]-f[xkey][ykey])/(f[x_right][0]-x)
+    if xkey>1:
+        x_left=find_row(find_near_left_row(x,f),f)
+        df_left = (f[x_left][ykey] - f[xkey][ykey]) / (f[x_left][0] - x)
+    if xkey<len(f)-1:
+        x_right=find_row(find_near_right_row(x,f),f)
+        df_right=(f[x_right][ykey]-f[xkey][ykey])/(f[x_right][0]-x)
+
+    if xkey==1:
+        return df_right
+    if xkey==len(f)-1:
+        return df_left
+
     return (df_left+df_right)/2
 
 def derivative_y(x,y,f):
-    y_left=find_col(find_near_left_col(y,f),f)
-    y_right=find_col(find_near_right_col(y,f),f)
-    xkey=find_row(x,f)
-    ykey=find_col(y,f)
+    xkey = find_row(x, f)
+    ykey = find_col(y, f)
 
-    df_left=(f[xkey][y_left]-f[xkey][ykey])/(f[0][y_left]-y)
-    df_right=(f[xkey][y_right]-f[xkey][ykey])/(f[0][y_right]-y)
+    if ykey>1:
+        y_left=find_col(find_near_left_col(y,f),f)
+        df_left=(f[xkey][y_left]-f[xkey][ykey])/(f[0][y_left]-y)
+
+    if ykey<len(f[0])-1:
+        y_right=find_col(find_near_right_col(y,f),f)
+        df_right=(f[xkey][y_right]-f[xkey][ykey])/(f[0][y_right]-y)
+
+    if ykey==1:
+        return df_right
+    if ykey==len(f[0])-1:
+        return df_left
+
     return (df_left+df_right)/2
 
 def L(x,y):
