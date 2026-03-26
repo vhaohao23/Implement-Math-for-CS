@@ -1,123 +1,63 @@
 import pandas as pd
 import numpy as np
 
-def find_row(x,f):
-    for i in range(1,len(f)):
-        if f[i][0]==x:
-            return i
-    return -1
+class LinearApproximation:
+    def __init__(self, csv_path):
+        self.df = pd.read_csv(csv_path,index_col=0)
+        self.df.index=self.df.index
+        self.df.columns=self.df.columns
 
-def find_col(y,f):
-    for i in range(1,len(f[0])):
-        if f[0][i]==y:
-            return i
-    return -1
+        self.df.index = pd.to_numeric(self.df.index, errors="raise")
+        self.df.columns = pd.to_numeric(self.df.columns, errors="raise")
 
-def find_near_point(x,y,f):
-    x0, y0 = f[1][0], f[0][1]
-    min_dist=abs(x0-x)**2+abs(y0-y)**2
-    for i in range(1,len(f)):
-        for j in range(1,len(f[i])):
-            dist=abs(f[i][0]-x)**2+abs(f[0][j]-y)**2
-            if dist<min_dist:
-                min_dist=dist
-                x0,y0=f[i][0],f[0][j]
-    return x0,y0
 
-def find_near_left_row(x,f):
-    min_dist=abs(f[0][0]-x)**2
-    xnear=0
-    for i in range(1,len(f)):
-        if f[i][0]<x:
-            dist=abs(f[i][0]-x)**2
-            if dist<min_dist:
-                min_dist=dist
-                xnear=f[i][0]
-    return int(xnear)
+    def find_nearest_point(self,x,y):
+        x0=self.df.index[np.abs(self.df.index-x).argmin()]
+        y0=self.df.columns[np.abs(self.df.columns-y).argmin()]
+        return x0,y0
 
-def find_near_right_row(x,f):
-    min_dist=abs(f[0][0]-x)**2
-    xnear=0
-    for i in range(1,len(f)):
-        if f[i][0]>x:
-            dist=abs(f[i][0]-x)**2
-            if dist<min_dist:
-                min_dist=dist
-                xnear=f[i][0]
+    def derivative_x(self,x0,y0):
+        if self.df.index.get_loc(x0)==0:
+            right_x0=self.df.index[np.abs(self.df.index>x0)].min()
+            dtu=self.df.loc[right_x0,y0]-self.df.loc[x0,y0]
+            dmau=right_x0-x0
+            return dtu/dmau
+        elif self.df.index.get_loc(x0)==len(self.df.index)-1:
+            left_x0=self.df.index[np.abs(self.df.index<x0)].max()
+            dtu=self.df.loc[x0,y0]-self.df.loc[left_x0,y0]
+            dmau=x0 - left_x0
+            return dtu/dmau
+        else:
+            right_x0=self.df.index[np.abs(self.df.index>x0)].min()
+            left_x0=self.df.index[np.abs(self.df.index<x0)].max()
+            dtu_right=self.df.loc[right_x0,y0]-self.df.loc[x0,y0]
+            dtu_left=self.df.loc[left_x0,y0]-self.df.loc[x0,y0]
+            dmau_right=right_x0-x0
+            dmau_left=left_x0-x0
+            return (dtu_right/dmau_right+dtu_left/dmau_left)/2.0
+    def derivative_y(self, x0,y0):
+        if self.df.columns.get_loc(y0)==0:
+            right_y0=self.df.columns[np.abs(self.df.columns>y0)].min()
+            dtu=self.df.loc[x0,right_y0]-self.df.loc[x0,y0]
+            dmau=right_y0-y0
+            return dtu/dmau
+        elif self.df.columns.get_loc(y0) == len(self.df.columns) - 1:
+            left_y0 = self.df.columns[np.abs(self.df.columns < y0)].max()
+            dtu = self.df.loc[x0, y0] - self.df.loc[x0, left_y0]
+            dmau = y0 - left_y0
+            return dtu / dmau
+        else:
+            right_y0 = self.df.columns[np.abs(self.df.columns > y0)].min()
+            left_y0 = self.df.columns[np.abs(self.df.columns < y0)].max()
+            dtu_right = self.df.loc[x0, right_y0] - self.df.loc[x0, y0]
+            dtu_left = self.df.loc[x0, left_y0] - self.df.loc[x0, y0]
+            dmau_right = right_y0 - y0
+            dmau_left = left_y0 - y0
+            return (dtu_right/dmau_right+dtu_left/dmau_left)/2.0
+    def approximation(self,x,y):
+        x0,y0=self.find_nearest_point(x,y)
+        return self.derivative_x(x0,y0)*(x-x0)+self.derivative_y(x0,y0)*(y-y0)+self.df.loc[x0,y0]
 
-    return int(xnear)
-
-def find_near_left_col(y,f):
-    min_dist=abs(f[0][0]-y)**2
-    ynear=0
-    for i in range(1,len(f[0])):
-        if f[0][i]<y:
-            dist=abs(f[0][i]-y)**2
-            if dist<min_dist:
-                min_dist=dist
-                ynear=f[0][i]
-    return int(ynear)
-
-def find_near_right_col(y,f):
-    min_dist=abs(f[0][0]-y)**2
-    ynear=0
-    for i in range(1,len(f[0])):
-        if f[0][i]>y:
-            dist=abs(f[0][i]-y)**2
-            if dist<min_dist:
-                min_dist=dist
-                ynear=f[0][i]
-    return int(ynear)
-
-def derivative_x(x,y,f):
-    ykey = find_col(y, f)
-    xkey = find_row(x, f)
-
-    if xkey>1:
-        x_left=find_row(find_near_left_row(x,f),f)
-        df_left = (f[x_left][ykey] - f[xkey][ykey]) / (f[x_left][0] - x)
-    if xkey<len(f)-1:
-        x_right=find_row(find_near_right_row(x,f),f)
-        df_right=(f[x_right][ykey]-f[xkey][ykey])/(f[x_right][0]-x)
-
-    if xkey==1:
-        return df_right
-    if xkey==len(f)-1:
-        return df_left
-
-    return (df_left+df_right)/2
-
-def derivative_y(x,y,f):
-    xkey = find_row(x, f)
-    ykey = find_col(y, f)
-
-    if ykey>1:
-        y_left=find_col(find_near_left_col(y,f),f)
-        df_left=(f[xkey][y_left]-f[xkey][ykey])/(f[0][y_left]-y)
-
-    if ykey<len(f[0])-1:
-        y_right=find_col(find_near_right_col(y,f),f)
-        df_right=(f[xkey][y_right]-f[xkey][ykey])/(f[0][y_right]-y)
-
-    if ykey==1:
-        return df_right
-    if ykey==len(f[0])-1:
-        return df_left
-
-    return (df_left+df_right)/2
-
-def L(x,y):
-    x0, y0 = find_near_point(x,y,f)
-    row = find_row(x0, f)
-    col = find_col(y0, f)
-
-    return derivative_x(x0,y0,f)*(x-x0) + derivative_y(x0,y0,f)*(y-y0) + f[row][col]
-
-x, y = map(int, input("Enter the x and y values: ").split())
-df=pd.read_csv("data.csv",header=None)
-
-arr=df.to_numpy(dtype=float).tolist()
-f=[row[:] for row in arr]
-
-print("Approximation of f(x,y) at x =", x, "and y =", y, "is", L(x,y))
-
+sol=LinearApproximation("data.csv")
+x,y=map(float,input("Enter x,y: ").split())
+print(sol.approximation(x,y))
