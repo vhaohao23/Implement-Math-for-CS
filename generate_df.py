@@ -30,4 +30,4 @@ df['Gia_Xe_USD'] = (
     + np.random.normal(0, 25, n_samples) # Thêm nhiễu để thực tế hơn
 ).round(2)
 
-df.to_csv('data.csv', index=False)
+df.to_csv('data_multiD.csv', index=False)

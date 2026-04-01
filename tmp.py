@@ -1,122 +1,91 @@
-import pandas as pd
 import numpy as np
+import pandas as pd
 
-def find_row(x,f):
-    for i in range(1,len(f)):
-        if f[i][0]==x:
-            return i
-    return -1
+class LinearApproximation:
+    def __init__(self, csv_path):
+        self.df = pd.read_csv(csv_path)
+        self.dfi = self.df.drop(columns=self.df.columns[-1])
+        self.dfo = self.df.iloc[:, -1]
+        print(self.df)
+        self.feature = self.dfi.columns
 
-def find_col(y,f):
-    for i in range(1,len(f[0])):
-        if f[0][i]==y:
-            return i
-    return -1
+    def find_nearest_point(self, x):
+        data = self.dfi.to_numpy(dtype=float)
+        return np.linalg.norm(data - x, axis=1).argmin()
 
-def find_near_point(x,y,f):
-    x0, y0 = f[1][0], f[0][1]
-    min_dist=abs(x0-x)**2+abs(y0-y)**2
-    for i in range(1,len(f)):
-        for j in range(1,len(f[i])):
-            dist=abs(f[i][0]-x)**2+abs(f[0][j]-y)**2
-            if dist<min_dist:
-                min_dist=dist
-                x0,y0=f[i][0],f[0][j]
-    return x0,y0
+    def partial_df(self, feature, x0_index):
+        new_df = self.dfi.copy()
+        new_df["origin_idx"] = new_df.index
 
-def find_near_left_row(x,f):
-    min_dist=abs(f[0][0]-x)**2
-    xnear=0
-    for i in range(1,len(f)):
-        if f[i][0]<x:
-            dist=abs(f[i][0]-x)**2
-            if dist<min_dist:
-                min_dist=dist
-                xnear=f[i][0]
-    return int(xnear)
+        df0 = new_df.drop(self.dfi.index[x0_index])       # exclude x0
+        df0 = df0.drop(columns=feature)                    # exclude the feature being differentiated
 
-def find_near_right_row(x,f):
-    min_dist=abs(f[0][0]-x)**2
-    xnear=0
-    for i in range(1,len(f)):
-        if f[i][0]>x:
-            dist=abs(f[i][0]-x)**2
-            if dist<min_dist:
-                min_dist=dist
-                xnear=f[i][0]
+        x0 = self.dfi.iloc[x0_index]
 
-    return int(xnear)
+        other_features = [f for f in self.dfi.columns if f != feature]
+        all_dist = pd.DataFrame(
+            np.linalg.norm(
+                df0.drop(columns="origin_idx").to_numpy() - x0[other_features].to_numpy(),
+                axis=1
+            ),
+            columns=["dist"]
+        )
+        all_dist["origin_idx"] = df0["origin_idx"].to_numpy()
 
-def find_near_left_col(y,f):
-    min_dist=abs(f[0][0]-y)**2
-    ynear=0
-    for i in range(1,len(f[0])):
-        if f[0][i]<y:
-            dist=abs(f[0][i]-y)**2
-            if dist<min_dist:
-                min_dist=dist
-                ynear=f[0][i]
-    return int(ynear)
+        feature_vals = self.dfi.loc[all_dist["origin_idx"].to_numpy(), feature].to_numpy()
 
-def find_near_right_col(y,f):
-    min_dist=abs(f[0][0]-y)**2
-    ynear=0
-    for i in range(1,len(f[0])):
-        if f[0][i]>y:
-            dist=abs(f[0][i]-y)**2
-            if dist<min_dist:
-                min_dist=dist
-                ynear=f[0][i]
-    return int(ynear)
+        # Left neighbors (feature value < x0's)
+        left_mask = feature_vals < x0[feature]
+        all_dist_left = all_dist[left_mask]
 
-def derivative_x(x,y,f):
-    ykey = find_col(y, f)
-    xkey = find_row(x, f)
+        # Right neighbors (feature value > x0's)
+        right_mask = feature_vals > x0[feature]
+        all_dist_right = all_dist[right_mask]
 
-    if xkey>1:
-        x_left=find_row(find_near_left_row(x,f),f)
-        df_left = (f[x_left][ykey] - f[xkey][ykey]) / (f[x_left][0] - x)
-    if xkey<len(f)-1:
-        x_right=find_row(find_near_right_row(x,f),f)
-        df_right=(f[x_right][ykey]-f[xkey][ykey])/(f[x_right][0]-x)
+        if all_dist_left.empty and all_dist_right.empty:
+            return 0
 
-    if xkey==1:
-        return df_right
-    if xkey==len(f)-1:
-        return df_left
+        def get_best_neighbor(side_dist):
+            min_d = side_dist["dist"].min()
+            candidates = side_dist[side_dist["dist"] == min_d]["origin_idx"].to_numpy()
+            best = np.abs(self.dfi.loc[candidates, feature].to_numpy() - x0[feature]).argmin()
+            return candidates[best]
 
-    return (df_left+df_right)/2
+        if all_dist_left.empty:
+            idx_right = get_best_neighbor(all_dist_right)
+            return (self.dfo.loc[idx_right] - self.dfo.loc[x0_index]) / \
+                   (self.dfi.loc[idx_right, feature] - x0[feature])
 
-def derivative_y(x,y,f):
-    xkey = find_row(x, f)
-    ykey = find_col(y, f)
+        if all_dist_right.empty:
+            idx_left = get_best_neighbor(all_dist_left)
+            return (self.dfo.loc[idx_left] - self.dfo.loc[x0_index]) / \
+                   (self.dfi.loc[idx_left, feature] - x0[feature])
 
-    if ykey>1:
-        y_left=find_col(find_near_left_col(y,f),f)
-        df_left=(f[xkey][y_left]-f[xkey][ykey])/(f[0][y_left]-y)
+        idx_left  = get_best_neighbor(all_dist_left)
+        idx_right = get_best_neighbor(all_dist_right)
 
-    if ykey<len(f[0])-1:
-        y_right=find_col(find_near_right_col(y,f),f)
-        df_right=(f[xkey][y_right]-f[xkey][ykey])/(f[0][y_right]-y)
+        y_left  = self.dfo.loc[idx_left]
+        y_right = self.dfo.loc[idx_right]
+        x_left  = self.dfi.loc[idx_left,  feature]
+        x_right = self.dfi.loc[idx_right, feature]
 
-    if ykey==1:
-        return df_right
-    if ykey==len(f[0])-1:
-        return df_left
+        # ✅ Correct central difference formula
+        return (y_right - y_left) / (x_right - x_left)
 
-    return (df_left+df_right)/2
+    def approximation(self, x):
+        x0_index = self.find_nearest_point(x)
+        x = pd.Series(x, index=self.dfi.columns)
+        x0 = self.dfi.iloc[x0_index]
+        L = self.dfo.loc[x0_index]
 
-def L(x,y):
-    x0, y0 = find_near_point(x,y,f)
-    row = find_row(x0, f)
-    col = find_col(y0, f)
+        for feature in self.dfi.columns:
+            grad = self.partial_df(feature, x0_index)
+            L += grad * (x[feature] - x0[feature])
 
-    return derivative_x(x0,y0,f)*(x-x0) + derivative_y(x0,y0,f)*(y-y0) + f[row][col]
+        print(f"Nearest point index: {x0_index}, f(x0) = {self.dfo.loc[x0_index]}")
+        return L
 
-x, y = map(int, input("Enter the x and y values: ").split())
-df=pd.read_csv("data.csv",header=None)
 
-arr=df.to_numpy(dtype=float).tolist()
-f=[row[:] for row in arr]
-
-print("Approximation of f(x,y) at x =", x, "and y =", y, "is", L(x,y))
+la = LinearApproximation("data_multiD.csv")
+x=np.array([22,12,250])
+print(f"L(x) = {la.approximation(x)}")

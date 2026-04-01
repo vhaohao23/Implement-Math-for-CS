@@ -25,11 +25,11 @@ def rep_by_series(func_s,n_s=10):
     print(f"c_n: {c_n}")
     print(f"Radius of convergence: {radius_of_convergence(c_n)}")
 
-    # df=func
+    # dfi=func
     # for i in range(n_s):
-    #     df0=df.subs(x,0)
+    #     df0=dfi.subs(x,0)
     #     print(f"c{i}= {df0/sp.factorial(i)}")
-    #     df=sp.diff(df)
+    #     dfi=sp.diff(dfi)
 
     t1=sp.series(func,x,0,n=1).removeO()
     t2=sp.series(func,x,0,n=2).removeO()

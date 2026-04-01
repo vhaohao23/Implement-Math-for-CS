@@ -10,13 +10,12 @@ class LinearApproximation:
         self.df.index = pd.to_numeric(self.df.index, errors="raise")
         self.df.columns = pd.to_numeric(self.df.columns, errors="raise")
 
-
     def find_nearest_point(self,x,y):
         x0=self.df.index[np.abs(self.df.index-x).argmin()]
         y0=self.df.columns[np.abs(self.df.columns-y).argmin()]
         return x0,y0
 
-    def derivative_x(self,x0,y0):
+    def fx(self,x0,y0):
         if self.df.index.get_loc(x0)==0:
             right_x0=self.df.index[np.abs(self.df.index>x0)].min()
             dtu=self.df.loc[right_x0,y0]-self.df.loc[x0,y0]
@@ -35,7 +34,7 @@ class LinearApproximation:
             dmau_right=right_x0-x0
             dmau_left=left_x0-x0
             return (dtu_right/dmau_right+dtu_left/dmau_left)/2.0
-    def derivative_y(self, x0,y0):
+    def fy(self, x0,y0):
         if self.df.columns.get_loc(y0)==0:
             right_y0=self.df.columns[np.abs(self.df.columns>y0)].min()
             dtu=self.df.loc[x0,right_y0]-self.df.loc[x0,y0]
@@ -56,8 +55,8 @@ class LinearApproximation:
             return (dtu_right/dmau_right+dtu_left/dmau_left)/2.0
     def approximation(self,x,y):
         x0,y0=self.find_nearest_point(x,y)
-        return self.derivative_x(x0,y0)*(x-x0)+self.derivative_y(x0,y0)*(y-y0)+self.df.loc[x0,y0]
+        return self.fx(x0, y0) *(x - x0)+ self.fy(x0, y0) *(y - y0)+self.df.loc[x0,y0]
 
 sol=LinearApproximation("data.csv")
-x,y=map(float,input("Enter x,y: ").split())
+x,y=map(float,input("Enter x,y : ").split())
 print(sol.approximation(x,y))
