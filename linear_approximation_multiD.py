@@ -3,17 +3,10 @@ import pandas as pd
 
 class LinearAproximation:
     def __init__(self, csv_path):
-        self.raw_df = pd.read_csv(csv_path)
-        # Lưu lại min, max để chuẩn hóa input x sau này
-        self.df_min = self.raw_df.min()
-        self.df_max = self.raw_df.max()
-
-        # Chuẩn hóa toàn bộ bảng dữ liệu
-        self.df = (self.raw_df - self.df_min) / (self.df_max - self.df_min)
+        self.df = pd.read_csv(csv_path)
 
         self.dfi = self.df.drop(columns=self.df.columns[-1])
         self.dfo = self.df.iloc[:, -1]
-        self.feature = self.dfi.columns
 
     def find_nearest_point(self,x):
         data=self.dfi.to_numpy(dtype=float)
@@ -103,7 +96,7 @@ class LinearAproximation:
         for feature in self.dfi.columns:
             L+=self.partial_df(feature,x0_index)*(x[feature]-x0[feature])
 
-        print(f"Nearst point:{self.df.iloc[x0_index].to_numpy()}")
+        print(f"Nearst point:{self.dfi.iloc[x0_index].to_numpy()}")
 
         return L
 
