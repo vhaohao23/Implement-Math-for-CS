@@ -2,11 +2,16 @@ import numpy as np
 import pandas as pd
 
 class LinearAproximation:
-    def __init__(self, csv_path):
-        self.df = pd.read_csv(csv_path)
+    def __init__(self, csv_path=None):
+        self.df = pd.read_csv(csv_path) if csv_path else None
 
-        self.dfi = self.df.drop(columns=self.df.columns[-1])
-        self.dfo = self.df.iloc[:, -1]
+        self.dfi = self.df.drop(columns=self.df.columns[-1]) if csv_path else None
+        self.dfo = self.df.iloc[:, -1] if csv_path else None
+    def read_csv(self,csv_path):
+        self.df = pd.read_csv(csv_path) if csv_path else None
+        self.dfi = self.df.drop(columns=self.df.columns[-1]) if csv_path else None
+        self.dfo = self.df.iloc[:, -1] if csv_path else None
+
 
     def find_nearest_point(self,x):
         data=self.dfi.to_numpy(dtype=float)
@@ -100,11 +105,3 @@ class LinearAproximation:
 
         return L
 
-la=LinearAproximation("data_multiD.cs"
-                      "v")
-feature=la.dfi.columns
-x=[_ for _ in range(len(feature))]
-for i in range(len(x)):
-    x[i]=float(input(f"{feature[i]}: "))
-
-print(f"L(x) = {la.approximation(x)}")

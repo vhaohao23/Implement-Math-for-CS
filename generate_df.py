@@ -1,33 +1,33 @@
 import pandas as pd
 import numpy as np
 
-# Thiết lập số lượng mẫu
-n_samples = 200
-np.random.seed(2024)
+# Cấu hình
+n_rows = 100000
+np.random.seed(42)
 
-# Sinh dữ liệu ngẫu nhiên cho các biến độc lập
-nam_sx = np.random.randint(2010, 2024, n_samples)
-km_di = np.random.uniform(5000, 150000, n_samples)
-dung_tich = np.random.choice([1.0, 1.5, 2.0, 2.5, 3.0], n_samples)
-bao_tri = np.random.uniform(1, 10, n_samples)
+# Sinh Features
+gia_ban = np.random.uniform(10, 50, n_rows)        # x1
+ngan_sach_qc = np.random.uniform(10, 1000, n_rows) # x2
+danh_gia_sao = np.random.uniform(1, 5, n_rows)      # x3
+do_hot_trend = np.random.uniform(0, 10, n_rows)    # x4
 
-# Tạo DataFrame
+# Công thức Phi Tuyến tính (Target: Doanh số)
+# y = 500 - 2*x1 + 5*sqrt(x2) + exp(x3/2) + 10*sin(x4/10) + noise
+y = (500
+     - 1.5 * gia_ban
+     + 8 * np.sqrt(ngan_sach_qc)
+     + 2 * np.exp(danh_gia_sao / 1.5)
+     + 20 * np.sin(do_hot_trend / 5)
+     #+ np.random.normal(0, 10, n_rows)
+     ) # Thêm nhiễu ngẫu nhiên
+
 df = pd.DataFrame({
-    'Nam_SX': nam_sx,
-    'KM_Da_Di': km_di,
-    'Dung_Tich': dung_tich,
-    'Diem_Bao_Tri': bao_tri
+    'Gia_Ban': gia_ban,
+    'Ngan_Sach_QC': ngan_sach_qc,
+    'Danh_Gia_Sao': danh_gia_sao,
+    'Do_Hot_Trend': do_hot_trend,
+    'Doanh_So': y
 })
 
-# Tạo biến mục tiêu (Gia_Xe) dựa trên công thức tuyến tính + Nhiễu (noise)
-# Giả sử: Giá = 50*(Năm-2010) - 0.002*KM + 100*DungTich + 20*BaoTri + 300
-df['Gia_Xe_USD'] = (
-    50 * (df['Nam_SX'] - 2010)
-    - 0.002 * df['KM_Da_Di']
-    + 100 * df['Dung_Tich']
-    + 20 * df['Diem_Bao_Tri']
-    + 300
-    + np.random.normal(0, 25, n_samples) # Thêm nhiễu để thực tế hơn
-).round(2)
-
 df.to_csv('data_multiD.csv', index=False)
+print("Đã tạo file data_thick_nonlinear.csv thành công!")
