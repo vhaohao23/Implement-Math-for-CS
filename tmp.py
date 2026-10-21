@@ -1,16 +1,15 @@
-import numpy as np
+import pandas as pd
+from sklearn.decomposition import PCA
+from sklearn.preprocessing import StandardScaler
 
-from linear_regression import LinearRegression
+df = pd.read_csv("data.csv", header=None)
 
-g=LinearRegression("data_multiD.csv")
+# df là DataFrame trong ảnh của bạn
+X = StandardScaler().fit_transform(df)   # nên chuẩn hóa trước khi PCA
 
-feature=g.df.drop(columns=g.df.columns[-1]).columns
+pca = PCA(n_components=0.90)             # tự chọn số thành phần để giữ >= 90% phương sai
+X_pca = pca.fit_transform(X)
 
-x=[_ for _ in range(len(feature))]
-for i in range(len(x)):
-    x[i]=float(input(f"{feature[i]}: "))
-
-
-ans=g.predict(x)
-
-print(f"Predicted value is {ans}")
+print("Số thành phần:", pca.n_components_)
+print("Tỉ lệ phương sai:", pca.explained_variance_ratio_)
+print("Tổng:", pca.explained_variance_ratio_.sum())
